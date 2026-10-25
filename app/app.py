@@ -46,7 +46,7 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 # WITHDRAWN and REJECTED applications do not block a fresh application.
 ACTIVE_STATUSES = ("PENDING", "APPROVED", "DEEMED_APPROVED")
 
-SMS_GATEWAY_URL = config.get("app", "sms_gateway_url")
+SMS_GATEWAY_URL = os.environ.get("SMS_GATEWAY_URL") or config.get("app", "sms_gateway_url")
 OTP_VALIDITY_SECONDS = config.getint("app", "otp_validity_seconds")
 UPLOAD_DIR = config.get("app", "upload_dir")
 SCHEME_DEADLINE = datetime.strptime(config.get("pension", "scheme_deadline"),
@@ -70,12 +70,32 @@ except Exception:
 
 def get_db():
     return psycopg2.connect(
-        host=config.get("database", "host"),
-        port=config.get("database", "port"),
+        host=os.environ.get("DATABASE_HOST") or config.get("database", "host"),
+        port=os.environ.get("DATABASE_PORT") or config.get("database", "port"),
         dbname=config.get("database", "name"),
         user=config.get("database", "user"),
         password=config.get("database", "password"),
     )
+
+
+def ensure_agent_schema():
+    """Apply the small additive schema needed by agent drafts on old volumes."""
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS agent_drafts (
+               id UUID PRIMARY KEY,
+               mobile VARCHAR(15) NOT NULL,
+               data JSONB NOT NULL DEFAULT '{}'::jsonb,
+               doc_path VARCHAR(200),
+               created_at TIMESTAMP NOT NULL,
+               updated_at TIMESTAMP NOT NULL
+           )"""
+    )
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_agent_drafts_mobile ON agent_drafts(mobile)")
+    conn.commit()
+    cur.close()
+    conn.close()
 
 
 def sanitize(value, maxlen=100):
@@ -226,6 +246,34 @@ def index():
 @app.route("/about")
 def about():
     return render_template("about.html")
+
+
+@app.route("/agent-help")
+def agent_help():
+    return render_template("agent_help.html",
+                           issuer=os.environ.get("PUBLIC_BASE_URL", "http://localhost:8000").rstrip("/"))
+
+
+@app.route("/eval-dashboard")
+def eval_dashboard():
+    scenarios = [
+        ("Kamala Das", "citizen", "Valid Sonari application", "PENDING"),
+        ("Amina Begum", "citizen", "Under minimum age", "No application"),
+        ("Janki Saikia", "citizen", "Duplicate active application", "No duplicate"),
+        ("Madhab Bora", "citizen", "Invalid bank data and missing proof", "No application"),
+        ("Parul Devi", "citizen", "Unsupported block", "No application"),
+        ("Rupa Das", "citizen", "Withdraw pending application", "WITHDRAWN"),
+        ("Ananya Sharma", "officer", "Approve pending application", "APPROVED"),
+        ("Ananya Sharma", "officer", "Reject pending application", "REJECTED"),
+    ]
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT status, count(*) FROM applications GROUP BY status ORDER BY status")
+    counts = cur.fetchall()
+    cur.close()
+    conn.close()
+    return render_template("eval_dashboard.html", scenarios=scenarios, counts=counts,
+                           pilot_blocks=["Sonari", "Rajapara"])
 
 
 @app.route("/__gateway/", defaults={"subpath": ""})
@@ -672,6 +720,8 @@ def admin_reject(app_id):
 
 from oauth import oauth as _oauth_blueprint   # noqa: E402  (needs the definitions above)
 app.register_blueprint(_oauth_blueprint)
+from agent_mcp import agent_mcp as _agent_mcp_blueprint  # noqa: E402
+app.register_blueprint(_agent_mcp_blueprint)
 
 
 if __name__ == "__main__":

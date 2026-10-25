@@ -51,6 +51,18 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE INDEX IF NOT EXISTS idx_audit_app ON audit_log(application_id);
 CREATE INDEX IF NOT EXISTS idx_app_status_submitted ON applications(status, submitted_at);
 
+-- Server-side drafts for the citizen agent channel. Drafts are bound to the
+-- authenticated mobile and are never applications until final validation.
+CREATE TABLE IF NOT EXISTS agent_drafts (
+    id              UUID PRIMARY KEY,
+    mobile          VARCHAR(15) NOT NULL,
+    data            JSONB NOT NULL DEFAULT '{}'::jsonb,
+    doc_path        VARCHAR(200),
+    created_at      TIMESTAMP NOT NULL,
+    updated_at      TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_agent_drafts_mobile ON agent_drafts(mobile);
+
 -- OAuth 2.1 authorization server (third-party applications acting for a citizen or officer)
 CREATE TABLE IF NOT EXISTS oauth_keys (
     kid         VARCHAR(32) PRIMARY KEY,

@@ -5,10 +5,17 @@ services:
       POSTGRES_DB: sewasetu
       POSTGRES_USER: sewasetu
       POSTGRES_PASSWORD: sewasetu123
+    ports:
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./app/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
       - ./seed/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sewasetu -d sewasetu"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
   app:
     build: ./app
@@ -20,9 +27,16 @@ services:
       # the address at which people reach this portal; stamped into sign-in tokens and
       # discovery documents, so it must be the public one when deployed
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8000}
+      DATABASE_HOST: ${DATABASE_HOST:-host.docker.internal}
+      DATABASE_PORT: ${DATABASE_PORT:-5432}
+      SMS_GATEWAY_URL: ${SMS_GATEWAY_URL:-http://host.docker.internal:8025}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
-      - db
-      - smsgw
+      db:
+        condition: service_healthy
+      smsgw:
+        condition: service_started
     volumes:
       - uploads:/var/sewasetu/uploads
       - applogs:/var/log/sewasetu
@@ -33,7 +47,14 @@ services:
     # database is brought up to date), then hand over to cron for the nightly run.
     command: ["sh", "-c", "until python /app/scripts/deemed_approval.py; do sleep 5; done; exec cron -f"]
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_HOST: ${DATABASE_HOST:-host.docker.internal}
+      DATABASE_PORT: ${DATABASE_PORT:-5432}
+      SMS_GATEWAY_URL: ${SMS_GATEWAY_URL:-http://host.docker.internal:8025}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - applogs:/var/log/sewasetu
 
@@ -43,6 +64,8 @@ services:
     # users via the app at /__gateway/ (so no second host port is needed)
     expose:
       - "8025"
+    ports:
+      - "8025:8025"
 
 volumes:
   pgdata:

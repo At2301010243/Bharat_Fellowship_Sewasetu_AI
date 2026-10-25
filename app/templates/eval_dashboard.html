@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Agent evaluation dashboard</h2>
+<p>This dashboard describes the synthetic scenarios used to test the citizen and officer
+MCP channels. It never displays real applicant credentials, OTPs, bank accounts, or
+documents.</p>
+
+<h3>Current pilot</h3>
+<p>Blocks: {% for block in pilot_blocks %}<b>{{ block }}</b>{% if not loop.last %}, {% endif %}{% endfor %}.
+The portal database remains the system of record.</p>
+
+<h3>Evaluation scenarios</h3>
+<table class="tbl">
+  <tr><th>Persona</th><th>Channel</th><th>Scenario</th><th>Expected assertion</th><th>Latest result</th></tr>
+  {% for persona, channel, scenario, expected in scenarios %}
+  <tr><td>{{ persona }}</td><td>{{ channel }}</td><td>{{ scenario }}</td>
+      <td>{{ expected }}</td><td>Pending execution</td></tr>
+  {% endfor %}
+</table>
+
+<h3>Portal state snapshot</h3>
+<table class="tbl" style="max-width:400px">
+  {% for status, count in counts %}
+  <tr><td>{{ status }}</td><td>{{ count }}</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

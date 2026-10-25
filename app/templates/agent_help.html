@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Using an AI assistant with Seva Setu</h2>
+<p>Seva Setu provides two secure MCP connections for compatible AI assistants.
+They are APIs, not web chat pages, so opening an MCP URL in a browser will show
+an OAuth token message.</p>
+
+<h3>Choose the correct connection</h3>
+<table class="tbl">
+  <tr><th>Who is using it?</th><th>MCP endpoint</th><th>Login</th></tr>
+  <tr>
+    <td>Citizen or family helper</td>
+    <td><code>{{ issuer }}/mcp/citizen</code></td>
+    <td>Citizen mobile number and OTP</td>
+  </tr>
+  <tr>
+    <td>Block officer</td>
+    <td><code>{{ issuer }}/mcp/officer</code></td>
+    <td>Department username and password</td>
+  </tr>
+</table>
+
+<h3>How it works</h3>
+<ol>
+  <li>Open your AI assistant application, not a normal browser tab.</li>
+  <li>Add the appropriate MCP endpoint as a remote MCP server.</li>
+  <li>The assistant discovers Seva Setu OAuth and opens the portal sign-in.</li>
+  <li>Complete mobile OTP or officer login and approve the requested access.</li>
+  <li>Return to the assistant. It can then call only the tools allowed for that role.</li>
+</ol>
+
+<p><b>Important:</b> successful login at <a href="/status">Application Status</a>
+or <a href="/admin">Admin</a> does not automatically log an AI assistant in.
+The assistant performs its own OAuth consent flow.</p>
+
+<h3>OAuth discovery</h3>
+<ul>
+  <li><a href="/.well-known/oauth-protected-resource/mcp/citizen">Citizen MCP discovery</a></li>
+  <li><a href="/.well-known/oauth-protected-resource/mcp/officer">Officer MCP discovery</a></li>
+  <li><a href="/.well-known/oauth-authorization-server">Authorization server metadata</a></li>
+</ul>
+
+<p>This portal does not contain a built-in AI chat model. It provides the
+official, OAuth-protected MCP channel that an external assistant such as Claude
+Code or another MCP-compatible client uses.</p>
+{% endblock %}

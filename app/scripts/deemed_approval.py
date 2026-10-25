@@ -25,13 +25,13 @@ with open(CONFIG_PATH) as fh:
     config.read_file(fh)
 
 SLA_DAYS = config.getint("pension", "sla_days")
-SMS_GATEWAY_URL = config.get("app", "sms_gateway_url")
+SMS_GATEWAY_URL = os.environ.get("SMS_GATEWAY_URL") or config.get("app", "sms_gateway_url")
 
 
 def main():
     conn = psycopg2.connect(
-        host=config.get("database", "host"),
-        port=config.get("database", "port"),
+        host=os.environ.get("DATABASE_HOST") or config.get("database", "host"),
+        port=os.environ.get("DATABASE_PORT") or config.get("database", "port"),
         dbname=config.get("database", "name"),
         user=config.get("database", "user"),
         password=config.get("database", "password"),
