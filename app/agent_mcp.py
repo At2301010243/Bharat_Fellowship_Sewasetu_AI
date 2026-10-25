@@ -32,7 +32,9 @@ def _jsonrpc(request_id, result=None, error=None):
         response["error"] = error
     else:
         response["result"] = result
-    return jsonify(response)
+    flask_response = jsonify(response)
+    flask_response.headers["MCP-Protocol-Version"] = "2025-03-26"
+    return flask_response
 
 
 def _error(request_id, code, message, data=None):
@@ -62,10 +64,27 @@ def _protected_resource_metadata(kind):
 
 
 @agent_mcp.get("/.well-known/oauth-protected-resource")
+def protected_resource_metadata_default():
+    """Backward-compatible metadata endpoint; defaults to the citizen resource."""
+    return jsonify(_protected_resource_metadata("citizen"))
+
+
+@agent_mcp.get("/.well-known/oauth-protected-resource/mcp/citizen")
+def citizen_protected_resource_metadata():
+    """RFC 9728 metadata for the citizen MCP resource."""
+    return jsonify(_protected_resource_metadata("citizen"))
+
+
+@agent_mcp.get("/.well-known/oauth-protected-resource/mcp/officer")
+def officer_protected_resource_metadata():
+    """RFC 9728 metadata for the officer MCP resource."""
+    return jsonify(_protected_resource_metadata("officer"))
+
+
 @agent_mcp.get("/.well-known/oauth-protected-resource/<path:resource_path>")
-def protected_resource_metadata(resource_path=""):
-    """RFC 9728 metadata used by MCP clients to begin OAuth automatically."""
-    kind = "officer" if resource_path.endswith("/mcp/officer") else "citizen"
+def protected_resource_metadata_legacy(resource_path):
+    """Handle clients that request a resource-specific path not listed above."""
+    kind = "officer" if resource_path == "mcp/officer" else "citizen"
     return jsonify(_protected_resource_metadata(kind))
 
 
@@ -304,8 +323,44 @@ def _tools(kind):
         "approve_application": "Approve a pending application with a reason.",
         "reject_application": "Reject a pending application with a reason.",
     }
-    return [{"name": name, "description": descriptions[name],
-             "inputSchema": {"type": "object", "additionalProperties": True}}
+    schemas = {
+        "get_scheme_information": {"type": "object", "properties": {}, "additionalProperties": False},
+        "check_eligibility": {"type": "object", "properties": {
+            "applicant_name": {"type": "string"}, "dob": {"type": "string"},
+            "village": {"type": "string"}, "block": {"type": "string"},
+            "bank_account": {"type": "string"}, "ifsc": {"type": "string"},
+        }},
+        "start_application": {"type": "object", "properties": {}, "additionalProperties": False},
+        "update_application": {"type": "object", "required": ["draft_id"], "properties": {
+            "draft_id": {"type": "string"}, "applicant_name": {"type": "string"},
+            "dob": {"type": "string"}, "gender": {"type": "string"},
+            "marital_status": {"type": "string"}, "husband_name": {"type": "string"},
+            "village": {"type": "string"}, "block": {"type": "string"},
+            "bank_account": {"type": "string"}, "ifsc": {"type": "string"},
+        }},
+        "upload_age_proof": {"type": "object", "required": ["draft_id", "filename", "content_base64"],
+                             "properties": {
+                                 "draft_id": {"type": "string"}, "filename": {"type": "string"},
+                                 "content_base64": {"type": "string"},
+                             }},
+        "submit_application": {"type": "object", "required": ["draft_id"],
+                               "properties": {"draft_id": {"type": "string"}}},
+        "get_my_application": {"type": "object", "properties": {}, "additionalProperties": False},
+        "withdraw_application": {"type": "object", "required": ["application_id"],
+                                 "properties": {"application_id": {"type": "integer"}}},
+        "get_queue": {"type": "object", "properties": {}, "additionalProperties": False},
+        "get_application": {"type": "object", "required": ["application_id"],
+                            "properties": {"application_id": {"type": "integer"}}},
+        "get_application_status": {"type": "object", "required": ["application_id"],
+                                   "properties": {"application_id": {"type": "integer"}}},
+        "approve_application": {"type": "object", "required": ["application_id", "note"],
+                                "properties": {"application_id": {"type": "integer"},
+                                               "note": {"type": "string"}}},
+        "reject_application": {"type": "object", "required": ["application_id", "note"],
+                               "properties": {"application_id": {"type": "integer"},
+                                              "note": {"type": "string"}}},
+    }
+    return [{"name": name, "description": descriptions[name], "inputSchema": schemas[name]}
             for name in sorted(names)]
 
 
@@ -323,14 +378,18 @@ def mcp(kind):
         )
         return response
     if request.method == "GET":
-        return jsonify({"name": "seva-setu-%s-mcp" % kind, "transport": "streamable-http"})
+        response = jsonify({"name": "seva-setu-%s-mcp" % kind, "transport": "streamable-http"})
+        response.headers["MCP-Protocol-Version"] = "2025-03-26"
+        return response
     body = request.get_json(silent=True) or {}
     request_id = body.get("id")
     method = body.get("method")
     if method == "initialize":
-        return _jsonrpc(request_id, {"protocolVersion": "2025-03-26",
-                                     "capabilities": {"tools": {}},
-                                     "serverInfo": {"name": "seva-setu-%s" % kind, "version": "1.0"}})
+        response = _jsonrpc(request_id, {"protocolVersion": "2025-03-26",
+                                         "capabilities": {"tools": {"listChanged": False}},
+                                         "serverInfo": {"name": "seva-setu-%s" % kind, "version": "1.0"}})
+        response.headers["MCP-Protocol-Version"] = "2025-03-26"
+        return response
     if method == "notifications/initialized":
         return ("", 204)
     if method == "tools/list":

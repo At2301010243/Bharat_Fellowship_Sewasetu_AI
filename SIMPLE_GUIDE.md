@@ -33,6 +33,9 @@ Open the portal:
 - Evaluation dashboard: http://localhost:8000/eval-dashboard
 - AI assistant connection help: http://localhost:8000/agent-help
 
+For the complete ChatGPT connection, OAuth, PKCE, MCP tool, and negative-test
+instructions, read [CHATGPT_MCP_GUIDE.md](./CHATGPT_MCP_GUIDE.md).
+
 ## 2. Important: there is no signup page
 
 There are two different login types.
