@@ -177,6 +177,14 @@ def _cors(resp):
 # ---------------------------------------------------------------------------
 
 LOOPBACK_HOSTS = ("localhost", "127.0.0.1", "[::1]", "::1")
+CHATGPT_CLIENT_ID = "https://chatgpt.com/oauth/client.json"
+CHATGPT_CLIENT = {
+    "client_id": CHATGPT_CLIENT_ID,
+    "client_name": "ChatGPT",
+    "redirect_uris": ["https://chatgpt.com/connector_platform_oauth_redirect"],
+    "secret_hash": None,
+    "kind": "cimd",
+}
 
 
 def redirect_allowed(registered, uri):
@@ -213,6 +221,12 @@ def load_client(client_id):
         cur.close(); conn.close()
         return {"client_id": row[0], "client_name": row[1], "redirect_uris": row[2],
                 "secret_hash": row[3], "kind": row[4]}
+    # Codespace containers may not have outbound DNS even though the public
+    # portal is reachable by ChatGPT. Keep this well-known public client
+    # interoperable without weakening validation for arbitrary client IDs.
+    if client_id == CHATGPT_CLIENT_ID:
+        cur.close(); conn.close()
+        return dict(CHATGPT_CLIENT)
     if _is_url_client(client_id):
         try:
             doc = http.get(client_id, timeout=5, headers={"Accept": "application/json"}).json()
