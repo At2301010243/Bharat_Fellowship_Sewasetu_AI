@@ -5,39 +5,133 @@
 They are APIs, not web chat pages, so opening an MCP URL in a browser will show
 an OAuth token message.</p>
 
+<h3>Connect Seva Setu to ChatGPT</h3>
+<ol>
+  <li>Open ChatGPT in a desktop browser.</li>
+  <li>Open <b>Settings</b>, then open <b>Apps</b>, <b>Connectors</b>, or
+      <b>Developer mode</b>, depending on the ChatGPT version.</li>
+  <li>Choose <b>Create app</b>, <b>Add custom app</b>, <b>Add connector</b>, or
+      <b>Add remote MCP server</b>.</li>
+  <li>Give the app a name such as <b>Seva Setu Citizen</b>.</li>
+  <li>In the <b>Server URL</b>, <b>MCP URL</b>, or <b>Endpoint</b> field, paste
+      <b>the provided link in the form</b> for the role you want to connect.
+      Do not paste the portal home-page link.</li>
+  <li>Choose <b>OAuth</b> when ChatGPT asks for authentication. Do not choose
+      API key or unauthenticated access.</li>
+  <li>Save the app and choose <b>Connect</b> or <b>Sign in</b>.</li>
+  <li>Complete the Seva Setu sign-in and approve the consent request.</li>
+  <li>Return to ChatGPT, enable the new app in a new conversation, and open
+      the app details to confirm that tools are listed.</li>
+</ol>
+
 <h3>Choose the correct connection</h3>
 <table class="tbl">
-  <tr><th>Who is using it?</th><th>MCP endpoint</th><th>Login</th></tr>
+  <tr><th>Who is using it?</th><th>What to paste in the form</th><th>Login</th></tr>
   <tr>
     <td>Citizen or family helper</td>
-    <td><code>{{ issuer }}/mcp/citizen</code></td>
+    <td>Use the <b>provided citizen link in the form</b>.<br>
+      <code>{{ issuer }}/mcp/citizen</code><br>
+      <button class="btn" type="button" onclick="navigator.clipboard.writeText('{{ issuer }}/mcp/citizen')">Copy citizen URL</button></td>
     <td>Citizen mobile number and OTP</td>
   </tr>
   <tr>
     <td>Block officer</td>
-    <td><code>{{ issuer }}/mcp/officer</code></td>
+    <td>Use the <b>provided officer link in the form</b>.<br>
+      <code>{{ issuer }}/mcp/officer</code><br>
+      <button class="btn" type="button" onclick="navigator.clipboard.writeText('{{ issuer }}/mcp/officer')">Copy officer URL</button></td>
     <td>Department username and password</td>
   </tr>
 </table>
 
-<h3>How it works</h3>
+<h3>Which app should you create?</h3>
+<ul>
+  <li><b>Seva Setu Citizen:</b> choose this for a citizen or a family helper.
+      It can check eligibility, create an application, upload age proof, submit,
+      read status, and withdraw a pending application.</li>
+  <li><b>Seva Setu Officer:</b> choose this for a block officer. It can view
+      the queue, inspect applications, and approve or reject with a reason.</li>
+</ul>
+<p>Create two separate apps if you need to test both roles. Do not put the
+citizen and officer MCP links into one app.</p>
+
+<h3>Sign-in and consent</h3>
 <ol>
-  <li>Open your AI assistant application, not a normal browser tab.</li>
-  <li>Add the appropriate MCP endpoint as a remote MCP server.</li>
-  <li>The assistant discovers Seva Setu OAuth and opens the portal sign-in.</li>
-  <li>Complete mobile OTP or officer login and approve the requested access.</li>
-  <li>Return to the assistant. It can then call only the tools allowed for that role.</li>
+  <li>For citizens, enter the mobile number and the OTP shown in the
+      <a href="/__gateway/">SMS gateway console</a>, then approve the citizen
+      access request.</li>
+  <li>For officers, sign in with the departmental <code>admin</code> username
+      and configured administrator password, then approve officer access.</li>
+  <li>Citizen and officer access are separate. A citizen connection cannot use
+      officer queue or decision tools.</li>
 </ol>
 
 <p><b>Important:</b> successful login at <a href="/status">Application Status</a>
 or <a href="/admin">Admin</a> does not automatically log an AI assistant in.
 The assistant performs its own OAuth consent flow.</p>
 
+<h3>Test the citizen connection</h3>
+<p>After connecting the citizen endpoint, ask ChatGPT:</p>
+<pre>List the available Seva Setu citizen tools and briefly explain what each one does.</pre>
+<p>It should show tools for scheme information, eligibility, application drafts,
+age-proof upload, submission, status, and withdrawal. Then test the complete
+workflow with:</p>
+<pre>Use the Seva Setu citizen tools to check eligibility for a demo applicant:
+Name: Kamala Das
+Date of birth: 10/06/1945
+Village: Sonari village
+Block: Sonari
+Gender: Female
+Marital status: Widowed
+Do not submit the application yet.</pre>
+<p>Continue only after reviewing the result:</p>
+<pre>Start a Seva Setu application draft, update it with the confirmed applicant
+details, upload the selected demo JPG or PDF as age proof, and show me the
+validation result. Do not submit until I explicitly confirm.</pre>
+<p>For a real submission, use an authentic accepted age-proof document. A demo
+image may test the upload transport, but it does not prove age or document
+authenticity.</p>
+
+<h3>Test the officer connection</h3>
+<p>Use a separate ChatGPT conversation with only the officer connection enabled:</p>
+<pre>Use the Seva Setu officer tools to show the pending application queue for
+Sonari and Rajapara. Do not approve or reject anything.</pre>
+<p>Then inspect a queue item:</p>
+<pre>Inspect application ID &lt;APPLICATION_ID&gt; and show its details and audit
+history. Do not make a decision.</pre>
+<p>Approval or rejection must always be an explicit officer action. A rejection
+must include a recorded reason.</p>
+
+<h3>Pilot rules</h3>
+<ul>
+  <li>The pilot supports only <b>Sonari</b> and <b>Rajapara</b>.</li>
+  <li>Age proof, eligibility validation, duplicate checks, identity, consent,
+      audit logging, and the 15-day deemed-approval rule are not bypassed.</li>
+  <li>The existing Seva Setu portal remains the system of record. Agent-created
+      applications appear in the normal citizen and officer portals.</li>
+</ul>
+
 <h3>OAuth discovery</h3>
 <ul>
   <li><a href="/.well-known/oauth-protected-resource/mcp/citizen">Citizen MCP discovery</a></li>
   <li><a href="/.well-known/oauth-protected-resource/mcp/officer">Officer MCP discovery</a></li>
   <li><a href="/.well-known/oauth-authorization-server">Authorization server metadata</a></li>
+</ul>
+
+<h3>Troubleshooting</h3>
+<ul>
+  <li><b>The form asks for a URL:</b> paste the provided citizen or officer MCP
+      link in the form, including <code>/mcp/citizen</code> or
+      <code>/mcp/officer</code>. Do not paste an OAuth discovery link, the
+      website home page, or a localhost link.</li>
+  <li><b>401 access token required:</b> expected when opening an MCP URL directly
+      in a browser. Connect through ChatGPT so it can complete OAuth.</li>
+  <li><b>No tools available</b> or <b>action discovery failed:</b> remove the
+      connector, add it again, complete OAuth again, and start a new ChatGPT
+      conversation. ChatGPT may cache the tool list.</li>
+  <li><b>Unknown application:</b> confirm that the endpoint uses the current
+      public HTTPS URL and not an old Codespaces or localhost URL.</li>
+  <li><b>502 or timeout:</b> confirm that port 8000 is Public in the VS Code
+      Ports panel and test the public home page before reconnecting ChatGPT.</li>
 </ul>
 
 <p>This portal does not contain a built-in AI chat model. It provides the

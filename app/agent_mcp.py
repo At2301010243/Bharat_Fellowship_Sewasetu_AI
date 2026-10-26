@@ -13,6 +13,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 
 import app as portal
+import oauth as oauth_server
 
 agent_mcp = Blueprint("agent_mcp", __name__)
 ISSUER = os.environ.get("PUBLIC_BASE_URL", "http://localhost:8000").rstrip("/")
@@ -48,7 +49,7 @@ def _claims(kind):
     header = request.headers.get("Authorization", "")
     if not header.startswith("Bearer "):
         return None, "Bearer OAuth access token required"
-    claims = portal.verify_token(header[7:].strip(), _endpoint(kind))
+    claims = oauth_server.verify_token(header[7:].strip(), _endpoint(kind))
     if not claims or claims.get("role") != kind or claims.get("scope") != kind:
         return None, "token is not authorized for this MCP endpoint"
     return claims, None
@@ -166,7 +167,7 @@ def _citizen_tool(name, args, claims):
             existing = cur.fetchone()
             if existing:
                 return {"draft_id": str(existing[0]), "reused": True}
-            draft_id = uuid.uuid4()
+            draft_id = str(uuid.uuid4())
             now = datetime.now()
             cur.execute("INSERT INTO agent_drafts (id, mobile, data, created_at, updated_at) "
                         "VALUES (%s, %s, %s, %s, %s)", (draft_id, mobile, json.dumps({}), now, now))

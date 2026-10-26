@@ -24,4 +24,24 @@ The portal database remains the system of record.</p>
   <tr><td>{{ status }}</td><td>{{ count }}</td></tr>
   {% endfor %}
 </table>
+
+<h3>Recent pilot applications</h3>
+<p>Recent records from Sonari and Rajapara are shown here without mobile,
+bank-account, OTP, document, or other sensitive information.</p>
+<table class="tbl">
+  <tr><th>ID</th><th>Application number</th><th>Applicant</th><th>Block</th>
+      <th>Status</th><th>Submitted</th></tr>
+  {% for application_id, application_no, applicant_name, block, status, submitted_at in recent_applications %}
+  <tr>
+    <td>{{ application_id }}</td>
+    <td>{{ application_no }}</td>
+    <td>{{ applicant_name }}</td>
+    <td>{{ block }}</td>
+    <td>{{ status }}</td>
+    <td>{{ submitted_at }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6">No applications have been created in the pilot blocks.</td></tr>
+  {% endfor %}
+</table>
 {% endblock %}

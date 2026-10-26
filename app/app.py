@@ -270,10 +270,17 @@ def eval_dashboard():
     cur = conn.cursor()
     cur.execute("SELECT status, count(*) FROM applications GROUP BY status ORDER BY status")
     counts = cur.fetchall()
+    cur.execute(
+        "SELECT id, application_no, applicant_name, block, status, submitted_at "
+        "FROM applications WHERE block IN ('Sonari', 'Rajapara') "
+        "ORDER BY submitted_at DESC LIMIT 25"
+    )
+    recent_applications = cur.fetchall()
     cur.close()
     conn.close()
     return render_template("eval_dashboard.html", scenarios=scenarios, counts=counts,
-                           pilot_blocks=["Sonari", "Rajapara"])
+                           pilot_blocks=["Sonari", "Rajapara"],
+                           recent_applications=recent_applications)
 
 
 @app.route("/__gateway/", defaults={"subpath": ""})

@@ -138,6 +138,44 @@ If ChatGPT asks for a client ID, redirect URI, or OAuth metadata URL, use the
 dynamic-registration instructions in the next section. If the ChatGPT UI
 supports automatic OAuth discovery, no manual client secret should be needed.
 
+## 3a. Confirm the connected citizen tools
+
+After connecting the citizen app, ask ChatGPT:
+
+```text
+List the available Seva Setu citizen tools and briefly explain what each one does.
+```
+
+The citizen MCP endpoint should expose these eight tools:
+
+| Tool | Purpose | Required inputs |
+|---|---|---|
+| `get_scheme_information` | Retrieve scheme rules, the pension amount, SLA, and supported pilot blocks. | None |
+| `check_eligibility` | Validate the applicant's details before starting an application. | Details are optional; provide the available applicant fields |
+| `start_application` | Create or reuse the authenticated citizen's draft. | None |
+| `update_application` | Add or correct details in the draft. | `draft_id`; applicant fields as needed |
+| `upload_age_proof` | Attach the applicant's age-proof document. | `draft_id`, `filename`, `content_base64` |
+| `submit_application` | Validate and submit the completed draft. | `draft_id` |
+| `get_my_application` | Read the authenticated citizen's latest application and status. | None |
+| `withdraw_application` | Withdraw the citizen's pending application. | `application_id` |
+
+The pilot currently supports only the `Sonari` and `Rajapara` blocks. A normal
+citizen application should follow this order:
+
+1. Call `get_scheme_information`.
+2. Call `check_eligibility` with the applicant's available details.
+3. Call `start_application`.
+4. Call `update_application` and confirm the details with the citizen.
+5. Call `upload_age_proof` with a valid PDF, JPG, or PNG age-proof document.
+6. Call `submit_application` and report success only when it returns
+   confirmation.
+7. Call `get_my_application` whenever the citizen wants a status update.
+
+The assistant must not invent a submission result, application number, or
+status. It must not bypass OAuth consent, identity checks, required documents,
+validation, duplicate-application rules, or the 15-day deemed-approval rule.
+The existing Seva Setu portal remains the system of record.
+
 ## 4. OAuth dynamic client registration
 
 Seva Setu exposes RFC 7591 registration at:
